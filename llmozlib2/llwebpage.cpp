@@ -35,44 +35,16 @@
  * ***** END LICENSE BLOCK ***** */
 
 #include "llwebpage.h"
-#include "llmozlib2.h"
-#include "llembeddedbrowserwindow.h"
-#include "llembeddedbrowserwindow_p.h"
+
+#include <qevent.h>
+#include <qnetworkrequest.h>
+#include <qurl.h>
 
 //#define LINKTARGETPATCH
 
 LLWebPage::LLWebPage(QObject *parent)
     : QWebPage(parent)
 {
-    connect(this, SIGNAL(loadProgress(int)),
-            this, SLOT(loadProgressSlot(int)));
-    connect(this, SIGNAL(statusBarMessage(const QString &)),
-            this, SLOT(statusBarMessageSlot(const QString &)));
-    connect(mainFrame(), SIGNAL(urlChanged(const QUrl&)),
-            this, SLOT(urlChangedSlot(const QUrl&)));
-    connect(this, SIGNAL(loadFinished(bool)),
-            this, SLOT(loadFinished(bool)));
-}
-
-void LLWebPage::loadProgressSlot(int progress)
-{
-    window->d->mPercentComplete = progress;
-    LLEmbeddedBrowserWindowEvent event(window->getWindowId(), window->getCurrentUri(), progress);
-    window->d->mEventEmitter.update(&LLEmbeddedBrowserWindowObserver::onUpdateProgress, event);
-}
-
-void LLWebPage::statusBarMessageSlot(const QString& text)
-{
-    window->d->mStatusText = text.toStdString();
-    LLEmbeddedBrowserWindowEvent event(window->getWindowId(), window->getCurrentUri(), window->d->mStatusText);
-    window->d->mEventEmitter.update(&LLEmbeddedBrowserWindowObserver::onStatusTextChange, event);
-}
-
-void LLWebPage::urlChangedSlot(const QUrl& url)
-{
-    Q_UNUSED(url);
-    LLEmbeddedBrowserWindowEvent event(window->getWindowId(), window->getCurrentUri());
-    window->d->mEventEmitter.update(&LLEmbeddedBrowserWindowObserver::onLocationChange, event);
 }
 
 bool LLWebPage::event(QEvent *event)
@@ -86,71 +58,22 @@ bool LLWebPage::event(QEvent *event)
 
 bool LLWebPage::acceptNavigationRequest(QWebFrame* frame, const QNetworkRequest& request, NavigationType type)
 {
-    if (request.url().scheme() == window->d->mNoFollowScheme)
+    if (request.url().scheme() == mNoFollowScheme)
     {
-        std::string rawUri = QString(request.url().toEncoded()).toStdString();
-        LLEmbeddedBrowserWindowEvent event(window->getWindowId(), rawUri, rawUri);
-	window->d->mEventEmitter.update(&LLEmbeddedBrowserWindowObserver::onClickLinkNoFollow, event);
+        emit noFollowSchemeUrl(request.url());
         return false;
     }
     bool accepted = QWebPage::acceptNavigationRequest(frame, request, type);
     if (accepted && type == QWebPage::NavigationTypeLinkClicked) {
         QUrl url = request.url();
-        window->d->mClickHref = QString(url.toEncoded()).toStdString();
+        QString target;
 #ifdef LINKTARGETPATCH
         QWebHitTestResult hitTest = mainFrame()->hitTestContent(currentPoint);
-        window->d->mClickTarget = hitTest.linkTarget().toStdString();
-#else
-        window->d->mClickTarget = std::string();
+        target = hitTest.linkTarget();
 #endif
-        LLEmbeddedBrowserWindowEvent event(window->getWindowId(),
-                                           window->getCurrentUri(),
-                                           window->d->mClickHref,
-                                           window->d->mClickTarget);
-        window->d->mEventEmitter.update(&LLEmbeddedBrowserWindowObserver::onClickLinkHref, event);
+        emit targetUrlClicked(url, target);
     }
     return accepted;
 }
 
-void LLWebPage::loadFinished(bool)
-{
-    LLEmbeddedBrowserWindowEvent event(window->getWindowId(),
-            window->getCurrentUri());
-    window->d->mEventEmitter.update(&LLEmbeddedBrowserWindowObserver::onNavigateComplete, event);
-}
-
-QString LLWebPage::chooseFile(QWebFrame* parentFrame, const QString& suggestedFile)
-{
-    Q_UNUSED(parentFrame);
-    Q_UNUSED(suggestedFile);
-    qWarning() << "LLWebPage::" << __FUNCTION__ << "not implemented" << "Returning empty string";
-    return QString();
-}
-
-void LLWebPage::javaScriptAlert(QWebFrame* frame, const QString& msg)
-{
-    QMessageBox *msgBox = new QMessageBox(view());
-    msgBox->setWindowTitle(tr("JavaScript Alert - %1").arg(mainFrame()->url().host()));
-    msgBox->setText(msg);
-    msgBox->addButton(QMessageBox::Ok);
-    msgBox->show();
-}
-
-bool LLWebPage::javaScriptConfirm(QWebFrame* frame, const QString& msg)
-{
-    Q_UNUSED(frame);
-    Q_UNUSED(msg);
-    qWarning() << "LLWebPage::" << __FUNCTION__ << "not implemented" << msg << "returning true";
-    return true;
-}
-
-bool LLWebPage::javaScriptPrompt(QWebFrame* frame, const QString& msg, const QString& defaultValue, QString* result)
-{
-    Q_UNUSED(frame);
-    Q_UNUSED(msg);
-    Q_UNUSED(defaultValue);
-    Q_UNUSED(result);
-    qWarning() << "LLWebPage::" << __FUNCTION__ << "not implemented" << msg << defaultValue << "returning false";
-    return false;
-}
 

@@ -38,6 +38,7 @@
 #define LLEMBEDDEDBROWSERWINDOW_P_H
 
 #include "llwebpage.h"
+#include "server.h"
 
 #include <QtGui/QtGui>
 #include <QtNetwork/QtNetwork>
@@ -109,27 +110,11 @@ class LLEmbeddedBrowserWindowEmitter
 #include "llmozlib2.h"
 #include "llembeddedbrowserwindow.h"
 
-class GraphicsScene : public QGraphicsScene
-{
-    Q_OBJECT
-
-public:
-    GraphicsScene();
-    LLEmbeddedBrowserWindow *window;
-
-private slots:
-    void repaintRequestedSlot(const QList<QRectF> &);
-    friend class LLEmbeddedBrowserWindow;
-};
-
-
-
 class LLEmbeddedBrowserWindowPrivate
 {
     public:
     LLEmbeddedBrowserWindowPrivate()
         : mParent(0)
-        , mPage(new LLWebPage)
         , mPercentComplete(0)
         , mStatusText("")
         , mCurrentUri("")
@@ -146,20 +131,15 @@ class LLEmbeddedBrowserWindowPrivate
 
     ~LLEmbeddedBrowserWindowPrivate()
     {
-        delete mView;
-        delete mGraphicsScene;
-        mGraphicsView->viewport()->setParent(mGraphicsView);
-        delete mGraphicsView;
     }
+
+    LLServer server;
 
     LLEmbeddedBrowserWindowEmitter< LLEmbeddedBrowserWindowObserver > mEventEmitter;
     LLEmbeddedBrowser *mParent;
-    LLWebPage *mPage;
     QImage mImage;
 
-    QWebView *mView;
-    GraphicsScene *mGraphicsScene;
-    QGraphicsView *mGraphicsView;
+    QSize size;
     Qt::MouseButton mCurrentMouseDown;
 
     int16_t mPercentComplete;

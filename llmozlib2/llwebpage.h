@@ -37,32 +37,23 @@
 #ifndef LLWEBPAGE_H
 #define LLWEBPAGE_H
 
-#include <QtWebKit/QtWebKit>
+#include <qwebpage.h>
 
-class LLEmbeddedBrowserWindow;
 class LLWebPage : public QWebPage
 {
     Q_OBJECT
 
+    signals:
+        void noFollowSchemeUrl(const QUrl &url);
+        void targetUrlClicked(const QUrl &url, const QString &target);
+
     public:
         LLWebPage(QObject *parent = 0);
-        LLEmbeddedBrowserWindow *window;
+        QString mNoFollowScheme;
         bool event(QEvent *event);
 
     protected:
         bool acceptNavigationRequest(QWebFrame* frame, const QNetworkRequest& request, NavigationType type);
-
-    public slots:
-        void loadProgressSlot(int progress);
-        void statusBarMessageSlot(const QString &);
-        void urlChangedSlot(const QUrl& url);
-        void loadFinished(bool ok);
-
-    protected:
-        QString chooseFile(QWebFrame* parentFrame, const QString& suggestedFile);
-        void javaScriptAlert(QWebFrame* frame, const QString& msg);
-        bool javaScriptConfirm(QWebFrame* frame, const QString& msg);
-        bool javaScriptPrompt(QWebFrame* frame, const QString& msg, const QString& defaultValue, QString* result);
 
     private:
         QPoint currentPoint;

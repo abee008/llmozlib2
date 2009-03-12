@@ -91,6 +91,7 @@ class LLEmbeddedBrowserPrivate
     {
         if (!qApp)
         {
+            QApplication::setGraphicsSystem("raster");
             static int argc = 0;
             static char* argv[] = {""};
             mApplication = new QApplication(argc, (char **)argv);
