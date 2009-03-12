@@ -1,0 +1,51 @@
+From a6d09d39b1a8672536b04a5e473a6aba18245954 Mon Sep 17 00:00:00 2001
+From: Benjamin C Meyer <benjamin.meyer@torchmobile.com>
+Date: Wed, 11 Mar 2009 22:54:31 -0400
+Subject: fixes for multithreaded webkit
+
+---
+ src/gui/image/qpixmap.cpp |    2 ++
+ src/gui/text/qfont.cpp    |    8 ++++----
+ 2 files changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/src/gui/image/qpixmap.cpp b/src/gui/image/qpixmap.cpp
+index 2c4dd63..7057d33 100644
+--- a/src/gui/image/qpixmap.cpp
++++ b/src/gui/image/qpixmap.cpp
+@@ -95,12 +95,14 @@ static bool qt_pixmap_thread_test()
+         qFatal("QPixmap: Must construct a QApplication before a QPaintDevice");
+         return false;
+     }
++    /*
+ #ifndef Q_WS_WIN
+     if (qApp->thread() != QThread::currentThread()) {
+         qWarning("QPixmap: It is not safe to use pixmaps outside the GUI thread");
+         return false;
+     }
+ #endif
++*/
+     return true;
+ }
+ 
+diff --git a/src/gui/text/qfont.cpp b/src/gui/text/qfont.cpp
+index ff8c38b..911087f 100644
+--- a/src/gui/text/qfont.cpp
++++ b/src/gui/text/qfont.cpp
+@@ -2565,10 +2565,10 @@ Q_GLOBAL_STATIC(QThreadStorage<QFontCache *>, theFontCache)
+ 
+ QFontCache *QFontCache::instance()
+ {
+-    QFontCache *&fontCache = theFontCache()->localData();
+-    if (!fontCache)
+-        fontCache = new QFontCache;
+-    return fontCache;
++    if (!theFontCache()->hasLocalData())
++        theFontCache()->setLocalData(new QFontCache);
++
++    return theFontCache()->localData();
+ }
+ 
+ void QFontCache::cleanup()
+-- 
+1.6.0.4
+
